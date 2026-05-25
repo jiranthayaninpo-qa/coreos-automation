@@ -26,21 +26,23 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
+  // ตอนนี้รันแค่ Chrome (chromium) ก่อน — Firefox / WebKit comment ปิดไว้
+  // จะเปิดใช้งาน browser อื่นค่อยลบ comment ออก
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {

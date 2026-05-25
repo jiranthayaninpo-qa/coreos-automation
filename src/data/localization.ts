@@ -6,6 +6,10 @@ export interface Translations {
   loginBtn: string;
   dropdownSelect: string;
   continueBtn: string;
+  // ค่า default ของ Location / Security Group ที่ใช้ใน LocationSecurityPage
+  // UI จะ render ค่าเหล่านี้ตามภาษาที่เลือก (เช่น 'MED' ภาษาอังกฤษ -> 'อายุรกรรม' ภาษาไทย)
+  defaultLocation: string;
+  defaultSecurityGroup: string;
 }
 
 export const translations: Record<SupportedLang, Translations> = {
@@ -15,6 +19,8 @@ export const translations: Record<SupportedLang, Translations> = {
     loginBtn: 'Log in',
     dropdownSelect: 'Please select',
     continueBtn: 'Continue',
+    defaultLocation: '1001 | MED',
+    defaultSecurityGroup: 'Super Admin',
   },
   th: {
     username: 'กรอกชื่อผู้ใช้',
@@ -22,6 +28,8 @@ export const translations: Record<SupportedLang, Translations> = {
     loginBtn: 'เข้าสู่ระบบ',
     dropdownSelect: 'กรุณาเลือก',
     continueBtn: 'ดำเนินการต่อ',
+    defaultLocation: '1001 | อายุรกรรม',
+    defaultSecurityGroup: 'Super Admin',
   },
 };
 
