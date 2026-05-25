@@ -1,7 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 import { getTranslations, SupportedLang } from '../data/localization';
 
-// Page Object ของหน้า Login (หน้าจอแรกของระบบ CoreOS)
+// Page หน้า Login (หน้าจอแรกของระบบ CoreOS)
 // รองรับหลายภาษาผ่าน APP_LANG (en / th) โดยอ่าน placeholder จาก dictionary
 export class LoginPage {
   readonly page: Page;
@@ -17,7 +17,6 @@ export class LoginPage {
     const t = getTranslations();
 
     // ปุ่มสลับภาษาที่หน้า Login — เป็น <div> ที่ไม่มี role=button จึงหาจาก text ตรง ๆ
-    // ข้อความ 'Eng' / 'Thai' เป็นค่าคงที่
     this.engBtn = page.getByText('Eng');
     this.thaiBtn = page.getByText('Thai');
 
