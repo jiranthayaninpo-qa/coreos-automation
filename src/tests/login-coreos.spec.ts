@@ -1,11 +1,20 @@
 import { test, expect } from '@playwright/test';
+import { LoginPage } from '../pages/LoginPage';
+import { LocationSecurityPage } from '../pages/LocationSecurityPage';
 
-test('Superadmin can log in to CoreOS', async ({ page }) => {
-  await page.goto(process.env.BASE_URL!);
+test('Superadmin completes login + context selection and lands on dashboard', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  const locationSecurityPage = new LocationSecurityPage(page);
 
-  await page.getByLabel('Username').fill(process.env.SUPERADMIN_USER!);
-  await page.getByLabel('Password').fill(process.env.SUPERADMIN_PASS!);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await loginPage.goto();
+  await loginPage.login(
+    (globalThis as any).process?.env?.SUPERADMIN_USER!,
+    (globalThis as any).process?.env?.SUPERADMIN_PASS!,
+  );
 
-  await expect(page).toHaveURL(/dashboard|home/i);
+  await locationSecurityPage.selectContext('1001 | MED', 'Super Admin');
+
+  await expect(
+    page.getByText('Patients').or(page.getByRole('button', { name: '+ Add New' })),
+  ).toBeVisible();
 });
