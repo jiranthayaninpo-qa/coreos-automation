@@ -1,0 +1,23 @@
+{
+  "name": "coreos-automation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://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@github.com/jiranthayaninpo-qa/coreos-automation.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jiranthayaninpo-qa/coreos-automation/issues"
+  },
+  "homepage": "https://github.com/jiranthayaninpo-qa/coreos-automation#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1",
+    "dotenv": "^17.4.2"
+  }
+}
