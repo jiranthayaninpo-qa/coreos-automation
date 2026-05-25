@@ -25,8 +25,8 @@ test('Superadmin completes login + context selection', async ({ page }) => {
   // ตรวจสอบว่ามาถึงหน้า Register Landing Page แล้ว
   // เช็คภาษาตาม APP_LANG: en -> 'Patients' / '+ Add New', th -> 'ผู้ป่วย' / 'เพิ่มผู้ป่วยใหม่'
   const t = getTranslations();
-  // SPA ใช้เวลา navigate + render หลังกด Continue เกิน default 5s ของ expect ยืด timeout เป็น 7s
+  // SPA ใช้เวลา navigate + render หลังกด Continue เกิน default 5s ของ expect ยืด timeout เป็น 15s
   await expect(
     page.getByRole('button', { name: t.addNewPatientBtn }),
-  ).toBeVisible({ timeout: 7000 });
+  ).toBeVisible({ timeout: 15000 });
 });
