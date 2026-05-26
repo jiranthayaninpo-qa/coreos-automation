@@ -60,8 +60,11 @@ export class SecurityGroupPage {
     // 2) คลิกเมนู Setup (button มี accessible name แม้ตอน collapsed)
     await this.setupMenu.click();
 
-    // 3) คลิก submenu User management (รอ submenu render เสร็จก่อน)
+    // 3) คลิก submenu User management
+    //    รอ animation expand ของ MUI Collapse (~225ms) ให้เสร็จก่อนค่อยคลิก
+    //    มิเช่นนั้น React จะยัง re-render submenu อยู่ตอนคลิก ทำให้ดูเหมือนคลิกหลายครั้ง
     await this.userMgmtSubMenu.waitFor({ state: 'visible' });
+    await this.page.waitForTimeout(300);
     await this.userMgmtSubMenu.click();
 
     // 4) คลิกการ์ด Security Group เพื่อเข้าหน้า list (รอหน้า card render เสร็จก่อน)

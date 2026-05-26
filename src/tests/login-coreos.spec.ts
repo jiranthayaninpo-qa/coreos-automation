@@ -6,7 +6,6 @@ import { getTranslations } from '../data/localization';
 // E2E test: ทดสอบ flow login ของ Superadmin
 // Login Screen -> Location/Security Screen -> Register Landing Page
 test('Superadmin completes login + context selection', async ({ page }) => {
-  test.setTimeout(60000);
   const loginPage = new LoginPage(page);
   const locationSecurityPage = new LocationSecurityPage(page);
 
@@ -25,8 +24,7 @@ test('Superadmin completes login + context selection', async ({ page }) => {
   // ตรวจสอบว่ามาถึงหน้า Register Landing Page แล้ว
   // เช็คภาษาตาม APP_LANG: en -> 'Patients' / '+ Add New', th -> 'ผู้ป่วย' / 'เพิ่มผู้ป่วยใหม่'
   const t = getTranslations();
-  // SPA ใช้เวลา navigate + render หลังกด Continue เกิน default 5s ของ expect ยืด timeout เป็น 15s
   await expect(
     page.getByRole('button', { name: t.addNewPatientBtn }),
-  ).toBeVisible({ timeout: 15000 });
+  ).toBeVisible();
 });

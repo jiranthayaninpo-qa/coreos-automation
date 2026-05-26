@@ -16,10 +16,19 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  /* Global per-test timeout = 60s — งบรวมของ test 1 ตัว ห้าม override per-test
+     (action/expect ที่ 10s ต้องการ test budget เหลือพอ — 60s รองรับ flow ยาว เช่น seed 156 checkbox) */
+  timeout: 60000,
+  /* expect() default timeout = 10s ต่อ assertion */
+  expect: { timeout: 10000 },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     // baseURL: 'http://localhost:3000',
+
+    /* Per-action / navigation timeout = 10s */
+    actionTimeout: 10000,
+    navigationTimeout: 10000,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',

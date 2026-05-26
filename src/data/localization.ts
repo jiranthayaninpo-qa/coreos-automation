@@ -59,10 +59,10 @@ export const translations: Record<SupportedLang, Translations> = {
     userMgmtSubMenu: 'User management',
     securityGroupCard: 'Security Group',
     createBtn: '+ สร้าง',
-    // placeholders / dropdown trigger text ภาษาไทย (อาจต้อง verify อีกครั้งเมื่อรันด้วย APP_LANG=th)
-    groupNamePlaceholder: 'ใส่ชื่อกลุ่มการเข้าใช้งาน',
+    // placeholders / dropdown trigger text ภาษาไทย (verify จาก UI จริงด้วย diag)
+    groupNamePlaceholder: 'กรอกชื่อสิทธิ์การเข้าถึง',
     homepagePlaceholder: 'เลือกหน้าแรก',
-    descriptionPlaceholder: 'ใส่คำอธิบาย',
+    descriptionPlaceholder: 'กรอกคำอธิบาย',
     submitGroupBtn: 'สร้าง',
   },
 };

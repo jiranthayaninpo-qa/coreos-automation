@@ -7,9 +7,6 @@ import { getTranslations } from '../data/localization';
 // E2E test: seed Security Group ที่จำเป็นต่อ flow สร้าง test users
 // Login -> Location/Security -> Sidebar Setup -> User management -> Security Group -> + Create -> กรอก -> Create
 test('Seed Security Group via Setup > User management', async ({ page }) => {
-  // ติ๊ก permission ครบทุกหมวด (~156 checkbox) ใช้เวลานานกว่าปกติ — เพิ่ม timeout เป็น 3 นาที
-  test.setTimeout(180000);
-
   const loginPage = new LoginPage(page);
   const locationSecurityPage = new LocationSecurityPage(page);
   const securityGroupPage = new SecurityGroupPage(page);
@@ -20,8 +17,20 @@ test('Seed Security Group via Setup > User management', async ({ page }) => {
   // ภาษาไทย / อังกฤษ ใช้คำใน UI ต่างกัน — เลือก default per-language ของ Homepage และ description
   // Homepage default ต้องตรงกับ option จริงใน dropdown (ตรวจ verify จากการ run จริง)
   const isThai = (process.env.APP_LANG || 'en').toLowerCase() === 'th';
-  // ใช้ timestamp suffix เพื่อกันชนเมื่อ test รันซ้ำในวันเดียว (ระบบไม่ยอมให้ชื่อซ้ำ)
-  const groupName = process.env.SEED_SG_NAME || `QA Seed Group ${Date.now()}`;
+  // ใช้ timestamp suffix DDMMYYYYHHMM ตามเวลาไทย (Asia/Bangkok, UTC+7) เพื่อกันชนเมื่อรันซ้ำในนาทีต่างกัน
+  // ระบบไม่ยอมให้ชื่อซ้ำ — ความละเอียดระดับนาทีเพียงพอสำหรับ test รันธรรมดา
+  const thaiTimeParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (type: string) => thaiTimeParts.find((p) => p.type === type)?.value ?? '';
+  const thaiStamp = `${get('day')}${get('month')}${get('year')}${get('hour')}${get('minute')}`;
+  const groupName = process.env.SEED_SG_NAME || `QA Seed Group ${thaiStamp}`;
   const homepage = process.env.SEED_SG_HOMEPAGE || (isThai ? 'ค้นหาผู้ป่วย' : 'Search Patient');
   const description =
     process.env.SEED_SG_DESC || (isThai ? 'กลุ่มสำหรับทดสอบ' : 'Group for QA seeding');
@@ -47,7 +56,7 @@ test('Seed Security Group via Setup > User management', async ({ page }) => {
   // 3) ยืนยันว่ามาถึงหน้า Register Landing แล้ว (sidebar render พร้อมใช้งาน)
   await expect(
     page.getByRole('button', { name: t.addNewPatientBtn }),
-  ).toBeVisible({ timeout: 15000 });
+  ).toBeVisible();
 
   // 4) เข้า flow Setup -> User management -> Security Group
   await securityGroupPage.MapsToSecurityGroup();
@@ -67,7 +76,5 @@ test('Seed Security Group via Setup > User management', async ({ page }) => {
   await securityGroupPage.clickSubmit();
 
   // 8) Verify ว่า group ใหม่โผล่ใน list — ใช้ชื่อที่เพิ่งสร้างเป็น smoke check
-  await expect(page.getByText(groupName, { exact: true })).toBeVisible({
-    timeout: 15000,
-  });
+  await expect(page.getByText(groupName, { exact: true })).toBeVisible();
 });
