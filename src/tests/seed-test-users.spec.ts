@@ -7,7 +7,8 @@ import { getTranslations } from '../data/localization';
 // E2E test: seed Security Group ที่จำเป็นต่อ flow สร้าง test users
 // Login -> Location/Security -> Sidebar Setup -> User management -> Security Group -> + Create -> กรอก -> Create
 test('Seed Security Group via Setup > User management', async ({ page }) => {
-  test.setTimeout(90000);
+  // ติ๊ก permission ครบทุกหมวด (~156 checkbox) ใช้เวลานานกว่าปกติ — เพิ่ม timeout เป็น 3 นาที
+  test.setTimeout(180000);
 
   const loginPage = new LoginPage(page);
   const locationSecurityPage = new LocationSecurityPage(page);
@@ -24,10 +25,14 @@ test('Seed Security Group via Setup > User management', async ({ page }) => {
   const homepage = process.env.SEED_SG_HOMEPAGE || (isThai ? 'ค้นหาผู้ป่วย' : 'Search Patient');
   const description =
     process.env.SEED_SG_DESC || (isThai ? 'กลุ่มสำหรับทดสอบ' : 'Group for QA seeding');
-  const permissions = (process.env.SEED_SG_PERMISSIONS || 'Alert,Appointment,EMR')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // permission categories: ถ้าตั้ง SEED_SG_PERMISSIONS=ALL จะติ๊กทุกหมวดอัตโนมัติ
+  //   ไม่ใส่ -> default = ALL (ติ๊กทุกหมวด ทุก permission)
+  //   ใส่ comma-separated list -> ติ๊กเฉพาะหมวดที่ระบุ (เช่น 'Alert,Appointment,EMR')
+  const permissionsEnv = (process.env.SEED_SG_PERMISSIONS || 'ALL').trim();
+  const selectAll = permissionsEnv.toUpperCase() === 'ALL';
+  const permissions = selectAll
+    ? []
+    : permissionsEnv.split(',').map((s) => s.trim()).filter(Boolean);
 
   // 1) Login ด้วย Superadmin จาก .env
   await loginPage.goto();
@@ -52,7 +57,11 @@ test('Seed Security Group via Setup > User management', async ({ page }) => {
 
   // 6) กรอกฟอร์ม + เลือก permission categories ที่ต้องการ
   await securityGroupPage.fillGroupDetails(groupName, homepage, description);
-  await securityGroupPage.selectPermissions(permissions);
+  if (selectAll) {
+    await securityGroupPage.selectAllPermissions();
+  } else {
+    await securityGroupPage.selectPermissions(permissions);
+  }
 
   // 7) Submit สร้าง group
   await securityGroupPage.clickSubmit();
