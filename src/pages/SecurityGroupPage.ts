@@ -14,6 +14,8 @@ export class SecurityGroupPage {
   readonly homepageInput: Locator;
   readonly descriptionInput: Locator;
   readonly submitButton: Locator;
+  readonly searchInput: Locator;
+  readonly updateButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -42,6 +44,11 @@ export class SecurityGroupPage {
 
     // ปุ่ม Create / สร้าง ปุ่มสุดท้ายใน drawer (submit form)
     this.submitButton = page.getByRole('button', { name: t.submitGroupBtn, exact: true });
+
+    // ช่องค้นหาในหน้า list ของ Security Group — ใช้ placeholder text ตามภาษา
+    this.searchInput = page.getByPlaceholder(t.searchPlaceholder);
+    // ปุ่ม Update / บันทึก ใน drawer edit (คนละปุ่มกับ submitButton ของ create)
+    this.updateButton = page.getByRole('button', { name: t.updateBtn, exact: true });
   }
 
   // นำทางจาก Register Landing -> หน้า list ของ Security Group
@@ -86,11 +93,46 @@ export class SecurityGroupPage {
   // - homepage: ชื่อ option ใน dropdown Homepage (ต้องตรงกับที่ render ในภาษาปัจจุบัน)
   // - description: ข้อความใน textarea (optional แต่ method นี้รับมาเสมอ — ถ้าไม่อยากกรอกส่ง '' ได้)
   async fillGroupDetails(name: string, homepage: string, description: string): Promise<void> {
-    await this.groupNameInput.fill(name);                                  // กรอกชื่อกลุ่ม
-    await this.homepageInput.click();                                      // เปิด dropdown Homepage
-    await this.page.getByRole('option', { name: homepage }).click();       // เลือก option ตามชื่อ
+    await this.groupNameInput.fill(name);                                  // กรอกชื่อกลุ่ม (fill เคลียร์ค่าเดิมก่อน)
+    await this.selectHomepage(homepage);                                   // เลือก Homepage (รองรับทั้ง create / edit drawer)
     if (description) {
       await this.descriptionInput.fill(description);                       // กรอก description ถ้ามี
+    }
+  }
+
+  // เลือก option ใน Homepage dropdown — ทำงานได้ทั้งใน create drawer (combobox แสดง placeholder)
+  // และ edit drawer (combobox แสดงค่า homepage เดิมของ group)
+  // วิธี: scope ไป drawer scope (drawer ที่มี groupNameInput) แล้วหา MuiSelect-select ตัวแรกใน drawer นั้น
+  async selectHomepage(option: string): Promise<void> {
+    const drawer = this.page
+      .locator('.MuiDrawer-root, [role="dialog"]')
+      .filter({ has: this.groupNameInput });
+    await drawer.locator('.MuiSelect-select').first().click();
+    await this.page.getByRole('option', { name: option, exact: true }).click();
+  }
+
+  // เปิด/Toggle label ของ permission ในหมวด category ที่ระบุ
+  // - category: ชื่อ h6 heading ของหมวด (เช่น 'Alert')
+  // - labels: ชื่อ label ของ checkbox ที่จะ toggle (เช่น ['Manage Clinical', 'View Clinical'])
+  // method นี้ idempotent ไม่ได้ — แค่คลิก label พลิกสถานะตามจังหวะปัจจุบัน
+  //   ใช้สำหรับเทสที่ต้องการ "uncheck แล้ว revert ภายหลัง" คู่กัน
+  async togglePermissionLabels(category: string, labels: string[]): Promise<void> {
+    const heading = this.page.getByRole('heading', { level: 6, name: category, exact: true });
+    await heading.first().scrollIntoViewIfNeeded();
+    // คลิก h6 เพื่อ expand MuiCollapse (เริ่ม collapsed) แล้วรอ animation
+    await heading.first().click();
+    await this.page.waitForTimeout(300);
+
+    const section = heading.first().locator('xpath=ancestor::div[3]');
+    for (const labelText of labels) {
+      // match label ที่ตัวมันเอง contain text — ระวังว่ามี label อื่นที่ contain เป็น substring เช่น
+      // "Manage Notify All" อาจชนกับ "Manage Notify" — ใช้ exact match ผ่าน regex
+      // อนุญาต whitespace ต้น/ท้าย (เพราะ UI บางตัวมี trailing space เช่น "Manage Clinical ")
+      const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const label = section.locator('label.MuiFormControlLabel-root').filter({
+        hasText: new RegExp(`^\\s*${escaped}\\s*$`),
+      });
+      await label.first().click();
     }
   }
 
@@ -161,8 +203,77 @@ export class SecurityGroupPage {
     await this.selectPermissions(categories);
   }
 
-  // คลิกปุ่ม Create/สร้าง
+  // คลิกปุ่ม Create/สร้าง — รอให้ drawer ปิดและ list refresh ก่อน return
   async clickSubmit(): Promise<void> {
     await this.submitButton.click();
+    // รอให้ drawer ปิด (groupNameInput หาย) และ server บันทึก + list re-fetch
+    await this.groupNameInput.waitFor({ state: 'hidden' }).catch(() => {});
+    await this.page.waitForTimeout(1500);
+  }
+
+  // ค้นหา group ในหน้า list — กรอกชื่อในช่อง Search แล้วกด Enter
+  // เพิ่ม wait หลัง fill ก่อนกด Enter เพราะ UI debounce keystrokes
+  // และรอ list update หลังกด Enter
+  async searchGroup(name: string): Promise<void> {
+    await this.searchInput.click();
+    await this.searchInput.fill(name);
+    await this.page.waitForTimeout(300);
+    await this.searchInput.press('Enter');
+    await this.page.waitForTimeout(1000);
+  }
+
+  // กรอง list ตามสถานะ Active/Inactive/All — คลิก dropdown Status แล้วเลือก option
+  // UI render เป็น MUI Select (combobox) ที่แสดง text ของ option ปัจจุบัน
+  // ใช้ regex filter จับ combobox ที่มี text เป็นหนึ่งในตัวเลือก เพื่อกันชนกับ combobox อื่น (Homepage, paging)
+  async filterByStatus(status: 'Active' | 'Inactive' | 'All'): Promise<void> {
+    const t = getTranslations();
+    const optMap: Record<typeof status, string> = {
+      Active: t.activeOpt,
+      Inactive: t.inactiveOpt,
+      All: t.allOpt,
+    };
+    // status combobox = combobox ที่ text ปัจจุบันเท่ากับ Active/Inactive/All ภาษาที่ตั้งไว้
+    const statusCombo = this.page
+      .getByRole('combobox')
+      .filter({ hasText: new RegExp(`^(${t.activeOpt}|${t.inactiveOpt}|${t.allOpt})$`) })
+      .first();
+    await statusCombo.click();
+    await this.page.getByRole('option', { name: optMap[status], exact: true }).click();
+    // รอ list update ตาม filter ใหม่ก่อน return
+    await this.page.waitForTimeout(500);
+  }
+
+  // เปิด drawer edit ของ row ที่มีชื่อ group ตามที่ระบุ
+  // UI ของ app นี้: คลิก name cell ของ row เพื่อเปิด drawer edit ทันที
+  //   (ปุ่ม action ใน column สุดท้ายเป็น kebab menu สำหรับ View Users / Copy เท่านั้น — ไม่มี Edit)
+  async clickEditRow(groupName: string): Promise<void> {
+    const row = this.page.locator('tr').filter({ hasText: groupName });
+    // คลิก cell ลำดับที่ 2 (Name column) เพื่อเปิด edit drawer
+    await row.locator('td').nth(1).click();
+    // รอ drawer edit เปิดและ field ชื่อ visible (พร้อมให้ caller แก้ค่าได้)
+    await this.groupNameInput.waitFor({ state: 'visible' });
+  }
+
+  // เปลี่ยนสถานะ active/inactive ของ group ผ่าน toggle switch ที่หัว drawer edit
+  // MUI Switch render เป็น input[type=checkbox] role=switch โดยมี wrapper .MuiSwitch-root
+  // - isActive=true  -> ให้ switch เป็น checked
+  // - isActive=false -> ให้ switch เป็น unchecked
+  async toggleGroupStatus(isActive: boolean): Promise<void> {
+    // หา switch อันแรกใน drawer edit (status switch อยู่ที่หัว drawer ก่อนทุก permission)
+    const statusSwitch = this.page.locator('input[type="checkbox"][role="switch"]').first();
+    const current = await statusSwitch.isChecked();
+    if (current !== isActive) {
+      // คลิกผ่าน wrapper ของ MUI Switch เพราะ input มี opacity:0 (เหมือน checkbox)
+      const wrapper = statusSwitch.locator('xpath=ancestor::span[contains(@class,"MuiSwitch-root")][1]');
+      await wrapper.click();
+    }
+  }
+
+  // คลิกปุ่ม Update/บันทึก ใน drawer edit เพื่อ save การแก้ไข
+  async clickUpdate(): Promise<void> {
+    await this.updateButton.click();
+    // รอให้ drawer ปิดและ list refresh
+    await this.groupNameInput.waitFor({ state: 'hidden' }).catch(() => {});
+    await this.page.waitForTimeout(1500);
   }
 }

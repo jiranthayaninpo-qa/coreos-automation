@@ -22,6 +22,15 @@ export interface Translations {
   homepagePlaceholder: string;
   descriptionPlaceholder: string;
   submitGroupBtn: string;
+  // หน้า list ของ Security Group: ช่อง search, dropdown Status, ปุ่ม Update ใน drawer edit
+  searchPlaceholder: string;
+  statusLabel: string;
+  activeOpt: string;
+  inactiveOpt: string;
+  allOpt: string;
+  updateBtn: string;
+  // เมนูตัวเลือกของ Action button ใน row (กดแล้วเปิด popover menu)
+  editMenuItem: string;
 }
 
 export const translations: Record<SupportedLang, Translations> = {
@@ -44,6 +53,13 @@ export const translations: Record<SupportedLang, Translations> = {
     homepagePlaceholder: 'Select Homepage',
     descriptionPlaceholder: 'Enter Description',
     submitGroupBtn: 'Create',
+    searchPlaceholder: 'Search by Name',
+    statusLabel: 'Status',
+    activeOpt: 'Active',
+    inactiveOpt: 'Inactive',
+    allOpt: 'All',
+    updateBtn: 'Update',
+    editMenuItem: 'Edit',
   },
   th: {
     username: 'กรอกชื่อผู้ใช้',
@@ -64,6 +80,13 @@ export const translations: Record<SupportedLang, Translations> = {
     homepagePlaceholder: 'เลือกหน้าแรก',
     descriptionPlaceholder: 'กรอกคำอธิบาย',
     submitGroupBtn: 'สร้าง',
+    searchPlaceholder: 'ค้นหาตามชื่อ',
+    statusLabel: 'สถานะ',
+    activeOpt: 'ใช้งาน',
+    inactiveOpt: 'ไม่ใช้งาน',
+    allOpt: 'ทั้งหมด',
+    updateBtn: 'อัปเดต',
+    editMenuItem: 'แก้ไข',
   },
 };
 
