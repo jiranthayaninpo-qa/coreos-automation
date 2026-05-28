@@ -189,8 +189,14 @@ export class SecurityGroupPage {
   // ติ๊ก permission เฉพาะ label ที่ระบุภายใน category (สำหรับเทสที่ต้องการ specific perms)
   // - categoryName: ชื่อ h6 ของหมวด (เช่น 'Alert' / 'การแจ้งเตือน')
   // - labelNames: รายชื่อ label ที่จะ check (เช่น ['View Clinical', 'View Expiry'])
+  // - options.tolerateMissing: ถ้า true จะ skip label ที่ไม่มีใน DOM แทนที่จะ throw
+  //                            ใช้กรณีต้องการเขียน script รอ feature ที่ยังไม่ develop
   // idempotent: ถ้า checked อยู่แล้วจะไม่คลิกซ้ำ (กัน toggle off)
-  async selectPermissionsByLabel(categoryName: string, labelNames: string[]): Promise<void> {
+  async selectPermissionsByLabel(
+    categoryName: string,
+    labelNames: string[],
+    options?: { tolerateMissing?: boolean },
+  ): Promise<void> {
     const heading = this.drawerPanel
       .getByRole('heading', { level: 6, name: categoryName, exact: true })
       .first();
@@ -210,6 +216,19 @@ export class SecurityGroupPage {
       const target = section.locator('label.MuiFormControlLabel-root').filter({
         hasText: new RegExp(`^\\s*${escaped}\\s*$`),
       });
+
+      // ถ้า tolerateMissing เปิดอยู่ — เช็คว่า label มีจริงไหม ถ้าไม่มี skip + warn
+      if (options?.tolerateMissing) {
+        const count = await target.count();
+        if (count === 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `⏭️  [skip] Label "${labelText}" not found in category "${categoryName}" (tolerateMissing=true) — รอ feature develop`,
+          );
+          continue;
+        }
+      }
+
       const input = target.locator('input[type="checkbox"]');
       if (!(await input.isChecked())) {
         await target.click();

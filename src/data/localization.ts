@@ -84,6 +84,8 @@ export interface Translations {
   homepageOPDNurseWorklist: string;
   homepageOPDDoctorWorklist: string;
   homepageAppointmentCalendar: string;
+  homepagePharmacyOPDWorklist: string;
+  homepageBilling: string;
 
   // ======================== Permission category names ========================
   // (h6 headings ใน Permissions section — ภาษาขึ้นกับ APP_LANG)
@@ -176,6 +178,8 @@ export const translations: Record<SupportedLang, Translations> = {
     homepageOPDNurseWorklist: 'OPD Nurse Worklist',
     homepageOPDDoctorWorklist: 'OPD Doctor Worklist',
     homepageAppointmentCalendar: 'Appointment Calendar',
+    homepagePharmacyOPDWorklist: 'Pharmacy OPD Worklist',
+    homepageBilling: 'Billing',
     // Permission categories
     catAlert: 'Alert',
     catAppointment: 'Appointment',
@@ -264,11 +268,13 @@ export const translations: Record<SupportedLang, Translations> = {
     homepageOPDNurseWorklist: 'เวิร์กลิสต์พยาบาลผู้ป่วยนอก',
     homepageOPDDoctorWorklist: 'เวิร์กลิสต์แพทย์ผู้ป่วยนอก',
     homepageAppointmentCalendar: 'ปฏิทินนัดหมาย',
+    homepagePharmacyOPDWorklist: 'เวิร์กลิสต์เภสัชกรรมผู้ป่วยนอก',
+    homepageBilling: 'การเงิน',
     // Permission categories
     catAlert: 'การแจ้งเตือน',
     catAppointment: 'นัดหมาย',
-    catBillingCashier: 'การเงิน',
-    catConfiguration: 'การกำหนดค่า',
+    catBillingCashier: 'แคชเชียร์และการเรียกเก็บเงิน',
+    catConfiguration: 'การตั้งค่าระบบ',
     catCPOE: 'CPOE',
     catEMR: 'EMR',
     catLaboratory: 'ห้องปฏิบัติการ',
@@ -276,8 +282,8 @@ export const translations: Record<SupportedLang, Translations> = {
     catOPD: 'ผู้ป่วยนอก',
     catPharmacy: 'เภสัชกรรม',
     catRegistration: 'ทะเบียนผู้ป่วย',
-    catReport: 'รายงาน',
-    catSetup: 'ตั้งค่า',
+    catReport: 'Report',
+    catSetup: 'การติดตั้ง',
   },
 };
 

@@ -68,8 +68,11 @@ test('Security Group: Create / Verify / Search / Filter / Inactive / Revert', as
   const stamp = ['day', 'month', 'year', 'hour', 'minute', 'second']
     .map(typ => parts.find(p => p.type === typ)?.value ?? '').join('');
 
-  const groupName      = `QA Seed Group ${stamp}`;
-  const partialKeyword = stamp.substring(0, 10);   // DDMMYYYYHH
+  const groupName      = `QA Admin ${stamp}`;
+  // partial keyword ใช้ "Admin <day month>" — มี word boundary + เป็น substring ของ groupName
+  // (ระบบ search นี้ใช้ word-token matching, ไม่ใช่ substring match บนตัวเลขล้วน
+  //  เช่น "2805202617" ไม่ match "28052026173806" แม้เป็น substring จริง)
+  const partialKeyword = `Admin ${stamp.substring(0, 8)}`; // 'Admin DDMMYYYY'
   const description    = isThai
     ? `กลุ่มสำหรับทดสอบ ${stamp}`
     : `Security group with all permissions for testing ${stamp}`;
@@ -374,6 +377,251 @@ test('Create Nurse Security Group with specific permissions', async () => {
   await securityGroupPage.selectPermissionsByLabel(t.catEMR, emrLabels);
   await securityGroupPage.selectPermissionsByLabel(t.catOPD, opdLabels);
   await securityGroupPage.selectPermissionsByLabel(t.catRegistration, registrationLabels);
+  await securityGroupPage.clickCreate();
+
+  // === Verify ===
+  await securityGroupPage.expectCreateSuccessToast();
+  await securityGroupPage.searchByName(groupName);
+  await securityGroupPage.expectRowVisible(groupName);
+});
+
+// ============================================================================
+// E2E: สร้าง Security Group ชื่อ "Doctor DDMMYYYYHHMMSS" พร้อม specific permissions
+// - Alert: Manage Clinical, View Clinical, View Expiry, View Financial,
+//          Manage Notify All, View Notify All, View Pharmacy
+// - CPOE: Manage Order CPOE, View Order CPOE, Order CPOE Lab, Order CPOE Pharmacy,
+//         Order CPOE procedure,service,DF, Order CPOE Supply, Order CPOE X-ray
+// - EMR: View All Visit History, Manage Appointment, View Appointment,
+//        Manage Chief Complain Doctor, View Chief Complain Doctor,
+//        View Chief Complain Nurse, View Chief Complain Registration,
+//        Manage Diagnosis (ICD-10), View Diagnosis (ICD-10),
+//        Manage Note, View Note, View Only Visit History,
+//        Manage Allergy Patient History, View Patient History,
+//        Manage Drug Allergy Patient History (Doctor),
+//        Manage Physical Examination, View Physical Examination,
+//        Manage Present Illness, View Present Illness,
+//        Manage Procedures (ICD-9), View Procedures (ICD-9),
+//        Manage Refer Out, View Refer Out, View Result, View Vital sign
+// - OPD: View Doctor Worklist
+// Homepage = OPD Doctor Worklist (EN) / เวิร์กลิสต์แพทย์ผู้ป่วยนอก (TH)
+// ============================================================================
+test('Create Doctor Security Group with specific permissions', async () => {
+  // === Test data ===
+  // Unique name ตามเวลาไทย DDMMYYYYHHMMSS (รวมวินาที กัน collision เวลารันซ้ำในนาทีเดียวกัน)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const stamp = ['day', 'month', 'year', 'hour', 'minute', 'second']
+    .map((typ) => parts.find((p) => p.type === typ)?.value ?? '')
+    .join('');
+  const groupName = `Doctor ${stamp}`;
+  // Homepage = OPD Doctor Worklist — language-aware ผ่าน localization
+  const homepage = t.homepageOPDDoctorWorklist;
+  const description = isThai ? 'กลุ่มแพทย์' : 'Doctor group';
+
+  // === Permission labels (เป็น EN ทั้ง 2 ภาษา ระบบไม่แปล label ของ checkbox) ===
+  const alertLabels = [
+    'Manage Clinical',
+    'View Clinical',
+    'View Expiry',
+    'View Financial',
+    'Manage Notify All',
+    'View Notify All',
+    'View Pharmacy',
+  ];
+  const cpoeLabels = [
+    'Manage Order CPOE',
+    'View Order CPOE',
+    'Order CPOE Lab',
+    'Order CPOE Pharmacy',
+    'Order CPOE procedure,service,DF',
+    'Order CPOE Supply',
+    'Order CPOE X-ray',
+  ];
+  const emrLabels = [
+    'View All Visit History',
+    'Manage Appointment',
+    'View Appointment',
+    'Manage Chief Complain Doctor',
+    'View Chief Complain Doctor',
+    'View Chief Complain Nurse',
+    'View Chief Complain Registration',
+    'Manage Diagnosis (ICD-10)',
+    'View Diagnosis (ICD-10)',
+    'Manage Note',
+    'View Note',
+    'View Only Visit History',
+    'Manage Allergy Patient History',
+    'View Patient History',
+    'Manage Drug Allergy Patient History (Doctor)',
+    'Manage Physical Examination',
+    'View Physical Examination',
+    'Manage Present Illness',
+    'View Present Illness',
+    'Manage Procedures (ICD-9)',
+    'View Procedures (ICD-9)',
+    'Manage Refer Out',
+    'View Refer Out',
+    'View Result',
+    'View Vital sign',
+  ];
+  const opdLabels = ['View Doctor Worklist'];
+
+  // Reset list state — test ก่อนหน้าอาจค้าง search/filter
+  await securityGroupPage.clickReset();
+
+  // === Create group ===
+  await securityGroupPage.openCreateDrawer();
+  await securityGroupPage.fillGroupInfo(groupName, homepage, description);
+  await securityGroupPage.selectPermissionsByLabel(t.catAlert, alertLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catCPOE, cpoeLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catEMR, emrLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catOPD, opdLabels);
+  await securityGroupPage.clickCreate();
+
+  // === Verify ===
+  await securityGroupPage.expectCreateSuccessToast();
+  await securityGroupPage.searchByName(groupName);
+  await securityGroupPage.expectRowVisible(groupName);
+});
+
+// ============================================================================
+// E2E: สร้าง Security Group ชื่อ "Pharmacist DDMMYYYYHHMMSS" พร้อม specific permissions
+// - Alert: Manage Pharmacy, View Pharmacy
+// - EMR: Confirm Allergy Patient History, Manage Allergy Patient History,
+//        Manage Drug Allergy Patient History (Pharmacist)
+//        (หมายเหตุ: user request เขียน "CPOE" แต่ verify แล้ว labels อยู่ใน EMR section จริง)
+// - Pharmacy: Check, CPOE, Discontinue, Dispense, EMR, Manage Operation,
+//             Prepare, Verify, View Operation, Return Manage, Return View
+// Homepage = Pharmacy OPD Worklist (EN) / เวิร์กลิสต์เภสัชกรรมผู้ป่วยนอก (TH)
+// ============================================================================
+test('Create Pharmacist Security Group with specific permissions', async () => {
+  // === Test data ===
+  // Unique name ตามเวลาไทย DDMMYYYYHHMMSS (รวมวินาที กัน collision เวลารันซ้ำในนาทีเดียวกัน)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const stamp = ['day', 'month', 'year', 'hour', 'minute', 'second']
+    .map((typ) => parts.find((p) => p.type === typ)?.value ?? '')
+    .join('');
+  const groupName = `Pharmacist ${stamp}`;
+  // Homepage = Pharmacy OPD Worklist — language-aware ผ่าน localization
+  const homepage = t.homepagePharmacyOPDWorklist;
+  const description = isThai ? 'กลุ่มเภสัชกร' : 'Pharmacist group';
+
+  // === Permission labels (เป็น EN ทั้ง 2 ภาษา ระบบไม่แปล label ของ checkbox) ===
+  const alertLabels = ['Manage Pharmacy', 'View Pharmacy'];
+  // Allergy labels อยู่ใน EMR section (verify จาก DOM แล้ว) — แม้ user request เขียน CPOE
+  const emrLabels = [
+    'Confirm Allergy Patient History',
+    'Manage Allergy Patient History',
+    'Manage Drug Allergy Patient History (Pharmacist)',
+  ];
+  const pharmacyLabels = [
+    'Check',
+    'CPOE',
+    'Discontinue',
+    'Dispense',
+    'EMR',
+    'Manage Operation',
+    'Prepare',
+    'Verify',
+    'View Operation',
+    'Return Manage',
+    'Return View',
+  ];
+
+  // Reset list state — test ก่อนหน้าอาจค้าง search/filter
+  await securityGroupPage.clickReset();
+
+  // === Create group ===
+  await securityGroupPage.openCreateDrawer();
+  await securityGroupPage.fillGroupInfo(groupName, homepage, description);
+  await securityGroupPage.selectPermissionsByLabel(t.catAlert, alertLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catEMR, emrLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catPharmacy, pharmacyLabels);
+  await securityGroupPage.clickCreate();
+
+  // === Verify ===
+  await securityGroupPage.expectCreateSuccessToast();
+  await securityGroupPage.searchByName(groupName);
+  await securityGroupPage.expectRowVisible(groupName);
+});
+
+// ============================================================================
+// E2E: สร้าง Security Group ชื่อ "Finance DDMMYYYYHHMMSS" พร้อม specific permissions
+// - Alert: Manage Financial, View Financial
+// - Billing & Cashier: Cancel Bill, Manage Blling & Cashier, RePrint,
+//                      View Blling & Cashier, Special Discount Approver
+// - OPD SSO Claim: Manage OPD SSO Claim, View OPD SSO Claim
+// - CPOE: Manage CPOE Access for Billing
+//         ⚠️ ปัจจุบัน label นี้ยังไม่ดงอยู่ใน DOM (feature ยังไม่ develop) —
+//            ใช้ tolerateMissing: true เพื่อ skip + warn แทนที่จะ throw
+//            เมื่อ feature develop เสร็จแล้วจะ auto-ติ๊กให้โดยอัตโนมัติ
+// Homepage = Billing (EN) / การเงิน (TH)
+// ============================================================================
+test('Create Finance Security Group with specific permissions', async () => {
+  // === Test data ===
+  // Unique name ตามเวลาไทย DDMMYYYYHHMMSS (รวมวินาที กัน collision เวลารันซ้ำในนาทีเดียวกัน)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const stamp = ['day', 'month', 'year', 'hour', 'minute', 'second']
+    .map((typ) => parts.find((p) => p.type === typ)?.value ?? '')
+    .join('');
+  const groupName = `Finance ${stamp}`;
+  // Homepage = Billing — language-aware ผ่าน localization
+  const homepage = t.homepageBilling;
+  const description = isThai ? 'กลุ่มการเงิน' : 'Finance group';
+
+  // === Permission labels (เป็น EN ทั้ง 2 ภาษา ระบบไม่แปล label ของ checkbox) ===
+  const alertLabels = ['Manage Financial', 'View Financial'];
+  // หมายเหตุ: "Blling" คือ typo จริงใน UI (ไม่ใช่ "Billing") — ตรงตาม DOM
+  const billingLabels = [
+    'Cancel Bill',
+    'Manage Blling & Cashier',
+    'RePrint',
+    'View Blling & Cashier',
+    'Special Discount Approver',
+  ];
+  const opdSSOLabels = ['Manage OPD SSO Claim', 'View OPD SSO Claim'];
+  // ⏳ Future feature — เขียนรอไว้ก่อน, label ยังไม่มีใน DOM (ใช้ tolerateMissing)
+  const cpoeLabels = ['Manage CPOE Access for Billing'];
+
+  // Reset list state — test ก่อนหน้าอาจค้าง search/filter
+  await securityGroupPage.clickReset();
+
+  // === Create group ===
+  await securityGroupPage.openCreateDrawer();
+  await securityGroupPage.fillGroupInfo(groupName, homepage, description);
+  await securityGroupPage.selectPermissionsByLabel(t.catAlert, alertLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catBillingCashier, billingLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catOPDSSOClaim, opdSSOLabels);
+  // CPOE: ใช้ tolerateMissing เพราะ label "Manage CPOE Access for Billing" ยังไม่มีใน DOM
+  await securityGroupPage.selectPermissionsByLabel(t.catCPOE, cpoeLabels, {
+    tolerateMissing: true,
+  });
   await securityGroupPage.clickCreate();
 
   // === Verify ===
