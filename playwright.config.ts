@@ -16,9 +16,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
-  /* Global per-test timeout = 60s — งบรวมของ test 1 ตัว ห้าม override per-test
-     (action/expect ที่ 10s ต้องการ test budget เหลือพอ — 60s รองรับ flow ยาว เช่น seed 156 checkbox) */
-  timeout: 60000,
+  /* Global per-test timeout = 120s — งบรวมของ test 1 ตัว ห้าม override per-test
+     (action/expect ที่ 10s ต้องการ test budget เหลือพอ — 120s รองรับ flow ที่ยาวสุด:
+      CRUD + revert ของ Security Group ที่ทำ selectAllPermissions = ~156 checkbox × 2 + navigation
+      ก่อนหน้านี้ใช้ ~60s ติด boundary และ flake บ่อย) */
+  timeout: 120000,
   /* expect() default timeout = 10s ต่อ assertion */
   expect: { timeout: 10000 },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
