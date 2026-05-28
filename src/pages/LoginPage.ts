@@ -17,8 +17,9 @@ export class LoginPage {
     const t = getTranslations();
 
     // ปุ่มสลับภาษาที่หน้า Login — เป็น <div> ที่ไม่มี role=button จึงหาจาก text ตรง ๆ
-    this.engBtn = page.getByText('Eng');
-    this.thaiBtn = page.getByText('Thai');
+    // ใช้ exact: true กัน match "Thailand" หรือ text อื่นที่มี "Thai" / "Eng" เป็น substring
+    this.engBtn = page.getByText('Eng', { exact: true });
+    this.thaiBtn = page.getByText('Thai', { exact: true });
 
     // หา input ของ username จาก placeholder text ในภาษาปัจจุบัน
     this.usernameInput = page.getByPlaceholder(t.username);
@@ -31,19 +32,26 @@ export class LoginPage {
   // เปิดหน้าจอ Login โดย navigate ไปที่ BASE_URL ที่ตั้งไว้ใน .env
   // เสร็จแล้วกดสลับภาษาทันทีตาม APP_LANG เพื่อให้ placeholder/ปุ่ม render เป็นภาษาที่ตรงกับ dictionary
   async goto(): Promise<void> {
-    await this.page.goto(process.env.BASE_URL!);
+    await this.page.goto(process.env.BASE_URL!, { waitUntil: 'domcontentloaded' });
     await this.selectLanguage();
   }
 
   // คลิกปุ่มสลับภาษาที่หัวหน้า Login
   // - ถ้าส่ง lang มาจะใช้ค่านั้น; ถ้าไม่ส่งจะอ่านจาก process.env.APP_LANG (default 'en')
   // - 'th' -> คลิกปุ่ม Thai, อย่างอื่นทั้งหมด -> คลิกปุ่ม Eng
+  // รอ button visible ก่อนคลิก + verify placeholder switched หลังคลิก เพื่อกัน flake
   async selectLanguage(lang?: SupportedLang | string): Promise<void> {
     const target = (lang || process.env.APP_LANG || 'en').toString().toLowerCase();
-    if (target === 'th') {
-      await this.thaiBtn.click();   // สลับ UI เป็นภาษาไทย
-    } else {
-      await this.engBtn.click();    // สลับ UI เป็นภาษาอังกฤษ
+    const btn = target === 'th' ? this.thaiBtn : this.engBtn;
+    await btn.waitFor({ state: 'visible' });
+    await btn.click();
+    // ระบบมี race condition: คลิกครั้งเดียวบางทีไม่ register — รอ + verify + retry ถ้าจำเป็น
+    try {
+      await this.usernameInput.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      // คลิกซ้ำแล้วรอใหม่ (placeholder ยังเป็นภาษาเดิม)
+      await btn.click();
+      await this.usernameInput.waitFor({ state: 'visible' });
     }
   }
 

@@ -275,7 +275,7 @@ export const translations: Record<SupportedLang, Translations> = {
     catOPDSSOClaim: 'OPD SSO Claim',
     catOPD: 'OPD',
     catPharmacy: 'เภสัชกรรม',
-    catRegistration: 'ลงทะเบียน',
+    catRegistration: 'ทะเบียนผู้ป่วย',
     catReport: 'รายงาน',
     catSetup: 'ตั้งค่า',
   },

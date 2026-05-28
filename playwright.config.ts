@@ -36,13 +36,23 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
 
-  /* Configure projects for major browsers */
-  // ตอนนี้รันแค่ Chrome (chromium) ก่อน — Firefox / WebKit comment ปิดไว้
-  // จะเปิดใช้งาน browser อื่นค่อยลบ comment ออก
+  /* Configure projects — ใช้ dependencies เพื่อบังคับลำดับ execute:
+   *   1) login-coreos.spec                 (smoke test ก่อน)
+   *   2) seed-test-security-group.spec     (ต้องผ่าน login ก่อน; ในไฟล์มี 2 test:
+   *                                          CRUD/Revert flow + Create Medical Record group)
+   * Playwright จะรัน project ที่อยู่ใน dependencies ก่อนเสมอ — ถ้า project ก่อนหน้า fail
+   * project ถัด ๆ ไปจะ skip อัตโนมัติ
+   * ตอนนี้รันแค่ Chrome (chromium) — viewport override เป็น 1920x1080 */
   projects: [
     {
-      name: 'chromium',
-      // override viewport ของ Desktop Chrome (1280x720 default) เป็น 1920x1080
+      name: '1-login',
+      testMatch: /login-coreos\.spec\.ts$/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1920, height: 1080 } },
+    },
+    {
+      name: '2-seed-security-group',
+      testMatch: /seed-test-security-group\.spec\.ts$/,
+      dependencies: ['1-login'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1920, height: 1080 } },
     },
 

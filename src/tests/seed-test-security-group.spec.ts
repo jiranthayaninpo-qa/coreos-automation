@@ -4,6 +4,11 @@ import { LocationSecurityPage } from '../pages/LocationSecurityPage';
 import { SecurityGroupPage } from '../pages/SecurityGroupPage';
 import { getTranslations } from '../data/localization';
 
+// บังคับให้ 2 tests ในไฟล์นี้ run แบบ serial (ไม่ parallel)
+//   เหตุผล: ทั้งคู่ login + interact กับ Security Group list — รันพร้อมกันทำให้ session/UI ทำงานชนกัน
+//   (language switch บน Login page flake บ่อยเมื่อ 2 contexts กดพร้อมกัน)
+test.describe.configure({ mode: 'serial' });
+
 // ============================================================================
 // E2E: Security Group — Create / Verify Edit / Search / Filter / Inactive / Revert
 // ----------------------------------------------------------------------------
@@ -192,4 +197,67 @@ test('Security Group: Create / Verify / Search / Filter / Inactive / Revert', as
     await securityGroupPage.expectRowNotVisible(groupName);
     await securityGroupPage.expectEmptyState();
   });
+});
+
+// ============================================================================
+// E2E: สร้าง Security Group ชื่อ "Medical Record DDMMYYYYHHMMSS" พร้อม specific permissions
+// - Alert (View Clinical, View Expiry, View Financial, Manage Notify All, View Notify All, View Pharmacy)
+// - Registration (Manage Registration, View Registration)
+// ============================================================================
+test('Create Medical Record Security Group with specific permissions', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  const locationPage = new LocationSecurityPage(page);
+  const securityGroupPage = new SecurityGroupPage(page);
+
+  const t = getTranslations();
+  const isThai = (process.env.APP_LANG || 'en').toLowerCase() === 'th';
+
+  // === Test data ===
+  // Unique name ตามเวลาไทย DDMMYYYYHHMMSS (รวมวินาที กัน collision เวลารันซ้ำในนาทีเดียวกัน)
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const stamp = ['day', 'month', 'year', 'hour', 'minute', 'second']
+    .map((typ) => parts.find((p) => p.type === typ)?.value ?? '')
+    .join('');
+  const groupName = `Medical Record ${stamp}`;
+  const homepage = t.homepageSearchPatient;
+  const description = isThai ? 'กลุ่มเวชระเบียน' : 'Medical Record group';
+
+  // permission labels เป็น EN ทั้งสองภาษา (ระบบไม่แปล label ของ checkbox)
+  const alertLabels = [
+    'View Clinical',
+    'View Expiry',
+    'View Financial',
+    'Manage Notify All',
+    'View Notify All',
+    'View Pharmacy',
+  ];
+  const registrationLabels = ['Manage Registration', 'View Registration'];
+
+  // === Login + navigate ===
+  await loginPage.goto();
+  await loginPage.login(process.env.SUPERADMIN_USER!, process.env.SUPERADMIN_PASS!);
+  await locationPage.selectContext();
+  await expect(page.getByRole('button', { name: t.addNewPatientBtn })).toBeVisible();
+  await securityGroupPage.navigateToSecurityGroup();
+
+  // === Create group ===
+  await securityGroupPage.openCreateDrawer();
+  await securityGroupPage.fillGroupInfo(groupName, homepage, description);
+  await securityGroupPage.selectPermissionsByLabel(t.catAlert, alertLabels);
+  await securityGroupPage.selectPermissionsByLabel(t.catRegistration, registrationLabels);
+  await securityGroupPage.clickCreate();
+
+  // === Verify ===
+  await securityGroupPage.expectCreateSuccessToast();
+  await securityGroupPage.searchByName(groupName);
+  await securityGroupPage.expectRowVisible(groupName);
 });

@@ -186,6 +186,38 @@ export class SecurityGroupPage {
     }
   }
 
+  // ติ๊ก permission เฉพาะ label ที่ระบุภายใน category (สำหรับเทสที่ต้องการ specific perms)
+  // - categoryName: ชื่อ h6 ของหมวด (เช่น 'Alert' / 'การแจ้งเตือน')
+  // - labelNames: รายชื่อ label ที่จะ check (เช่น ['View Clinical', 'View Expiry'])
+  // idempotent: ถ้า checked อยู่แล้วจะไม่คลิกซ้ำ (กัน toggle off)
+  async selectPermissionsByLabel(categoryName: string, labelNames: string[]): Promise<void> {
+    const heading = this.drawerPanel
+      .getByRole('heading', { level: 6, name: categoryName, exact: true })
+      .first();
+    await heading.scrollIntoViewIfNeeded();
+
+    // expand section ถ้ายังไม่ expand
+    const section = heading.locator('xpath=ancestor::div[3]');
+    const firstLabel = section.locator('label.MuiFormControlLabel-root').first();
+    if (!(await firstLabel.isVisible().catch(() => false))) {
+      await heading.click();
+      await this.page.waitForTimeout(300);
+    }
+
+    for (const labelText of labelNames) {
+      // match label exact text + tolerant ของ whitespace ต้น/ท้าย (เช่น "Manage Clinical ")
+      const escaped = labelText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const target = section.locator('label.MuiFormControlLabel-root').filter({
+        hasText: new RegExp(`^\\s*${escaped}\\s*$`),
+      });
+      const input = target.locator('input[type="checkbox"]');
+      if (!(await input.isChecked())) {
+        await target.click();
+        await this.page.waitForTimeout(50);
+      }
+    }
+  }
+
   // ติ๊ก permission ทุก category ใน drawer (auto-discover จาก h6 ใน Permissions section)
   // Filter: เก็บเฉพาะ h6 ที่ ancestor::div[3] เป็น "section container ของ category เดียว"
   //   เงื่อนไข: มี checkbox >= 1 ตัว AND มี h6 อยู่เพียง 1 ตัว (ตัวมันเอง)
