@@ -273,7 +273,7 @@ export const translations: Record<SupportedLang, Translations> = {
     catEMR: 'EMR',
     catLaboratory: 'ห้องปฏิบัติการ',
     catOPDSSOClaim: 'OPD SSO Claim',
-    catOPD: 'OPD',
+    catOPD: 'ผู้ป่วยนอก',
     catPharmacy: 'เภสัชกรรม',
     catRegistration: 'ทะเบียนผู้ป่วย',
     catReport: 'รายงาน',
